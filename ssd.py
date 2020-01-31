@@ -48,6 +48,7 @@ class SSD(nn.Module):
             self.vgg = nn.Sequential(*list(self.vgg[:i+1]), Downsample(channels=out_channel, filt_size=3, stride = 2), *list(self.vgg[i+1:]))
           i+=1
         
+        
         # Layer learns to scale the l2 normalized features from conv4_3
         self.L2Norm = L2Norm(512, 20)
         self.extras = nn.ModuleList(extras)
