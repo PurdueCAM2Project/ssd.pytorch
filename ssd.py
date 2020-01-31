@@ -5,6 +5,7 @@ from torch.autograd import Variable
 from layers import *
 from data import voc, coco
 import os
+from downsampler import Downsample
 
 
 class SSD(nn.Module):
@@ -36,6 +37,17 @@ class SSD(nn.Module):
 
         # SSD network
         self.vgg = nn.ModuleList(base)
+        out_channel = 1
+        i = 0
+        
+        while i < len(self.vgg):
+          if isinstance(self.vgg[i], torch.nn.modules.conv.Conv2d):
+            out_channel = self.vgg[i].out_channels
+          if isinstance(self.vgg[i], torch.nn.modules.pooling.MaxPool2d):
+            self.vgg[i].stride = 1
+            self.vgg = nn.Sequential(*list(self.vgg[:i+1]), Downsample(channels=out_channel, filt_size=3, stride = 2), *list(self.vgg[i+1:]))
+          i+=1
+        
         # Layer learns to scale the l2 normalized features from conv4_3
         self.L2Norm = L2Norm(512, 20)
         self.extras = nn.ModuleList(extras)
@@ -81,7 +93,6 @@ class SSD(nn.Module):
         for k in range(23, len(self.vgg)):
             x = self.vgg[k](x)
         sources.append(x)
-
         # apply extra layers and cache source layer outputs
         for k, v in enumerate(self.extras):
             x = F.relu(v(x), inplace=True)
